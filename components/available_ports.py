@@ -1,4 +1,3 @@
-# whatsrunning/components/available_ports.py
 import reflex as rx
 from state import AppState
 
@@ -8,7 +7,7 @@ def available_ports_panel() -> rx.Component:
         rx.vstack(
             rx.heading("Available Ports", size="5"),
             rx.text(
-                f"Scan range: {AppState.available_ports.get('scan_range', 'N/A')}",
+                f"Scan range: {AppState.scan_range}",
                 color="gray",
                 size="2",
             ),
@@ -18,9 +17,9 @@ def available_ports_panel() -> rx.Component:
             rx.heading("Free Ranges", size="3"),
             rx.box(
                 rx.foreach(
-                    AppState.available_ports.get("free_ranges", []),
-                    lambda range_tuple: rx.text(
-                        f"{range_tuple[0]}-{range_tuple[1]}",
+                    AppState.free_ranges,
+                    lambda range_list: rx.text(
+                        f"{range_list[0]}-{range_list[1]}",
                         size="2",
                     ),
                 ),
@@ -33,7 +32,7 @@ def available_ports_panel() -> rx.Component:
             rx.heading("Next Available", size="3"),
             rx.text(
                 rx.foreach(
-                    AppState.available_ports.get("next_available", []),
+                    AppState.next_available,
                     lambda port: f"{port}, ",
                 ),
                 size="2",

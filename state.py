@@ -25,6 +25,12 @@ class AppState(rx.State):
     npm_mappings: List[Dict[str, Any]] = []
     available_ports: Dict[str, Any] = {}
 
+    # Separate fields for port data (for Reflex type inference)
+    scan_range: str = ""
+    free_ranges: List[List[int]] = []
+    next_available: List[int] = []
+    used_ports: List[int] = []
+
     # UI state
     selected_node: Dict[str, Any] = {}
     last_updated: str = ""
@@ -79,7 +85,13 @@ class AppState(rx.State):
             # Scan ports
             port_range = os.getenv("PORT_SCAN_RANGE", "1024-10000")
             port_scanner = PortScanner(port_range)
-            self.available_ports = port_scanner.scan(set(self.host_ports))
+            port_data = port_scanner.scan(set(self.host_ports))
+
+            self.available_ports = port_data
+            self.scan_range = port_data.get("scan_range", "")
+            self.free_ranges = [[r[0], r[1]] for r in port_data.get("free_ranges", [])]
+            self.next_available = port_data.get("next_available", [])
+            self.used_ports = port_data.get("used_ports", [])
 
             self.last_updated = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
