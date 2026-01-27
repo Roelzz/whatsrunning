@@ -1,5 +1,5 @@
 import docker
-from typing import Dict, Any, List
+from typing import Dict, Any
 from whatsrunning.logger import get_logger
 
 logger = get_logger()
@@ -22,30 +22,30 @@ class DockerCollector:
         host_ports = set()
 
         for container in self.client.containers.list():
-            # Extract network info
             container_networks = list(container.attrs["NetworkSettings"]["Networks"].keys())
             networks.update(container_networks)
 
-            # Extract port mappings
             ports_data = container.attrs["NetworkSettings"]["Ports"] or {}
             internal_ports = []
             exposed_ports = {}
 
             for internal_port_str, host_bindings in ports_data.items():
-                # Parse internal port (e.g., "80/tcp" -> 80)
-                internal_port = int(internal_port_str.split("/")[0])
-                internal_ports.append(internal_port)
+                try:
+                    internal_port = int(internal_port_str.split("/")[0])
+                    internal_ports.append(internal_port)
 
-                # Parse host port if exposed
-                if host_bindings:
-                    host_port = int(host_bindings[0]["HostPort"])
-                    exposed_ports[internal_port] = host_port
-                    host_ports.add(host_port)
+                    if host_bindings:
+                        host_port = int(host_bindings[0]["HostPort"])
+                        exposed_ports[internal_port] = host_port
+                        host_ports.add(host_port)
+                except (ValueError, KeyError, IndexError) as e:
+                    logger.warning(f"Failed to parse port '{internal_port_str}': {e}")
+                    continue
 
             containers.append({
                 "id": container.id,
                 "name": container.name,
-                "image": container.image.tags[0] if container.image.tags else "unknown",
+                "image": container.image.tags[0] if (container.image.tags and len(container.image.tags) > 0) else "unknown",
                 "status": container.status,
                 "networks": container_networks,
                 "internal_ports": internal_ports,
