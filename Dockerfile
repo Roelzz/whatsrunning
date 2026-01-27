@@ -6,10 +6,13 @@ WORKDIR /app
 RUN pip install uv
 
 # Copy project files
-COPY . .
+COPY pyproject.toml uv.lock ./
 
-# Install dependencies
-RUN uv sync
+# Install dependencies (frozen lockfile, no dev dependencies)
+RUN uv sync --frozen --no-dev
+
+# Copy application code
+COPY . .
 
 # Expose Reflex default port
 EXPOSE 3000
