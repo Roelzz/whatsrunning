@@ -2,9 +2,9 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-# Install uv and runtime dependencies for Reflex
+# Install uv
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends curl ca-certificates unzip && \
+    apt-get install -y --no-install-recommends curl ca-certificates && \
     curl -LsSf https://astral.sh/uv/install.sh | sh && \
     rm -rf /var/lib/apt/lists/*
 
@@ -21,9 +21,8 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 # Copy application code
 COPY . .
 
-# Expose Reflex ports
+# Expose Dash port
 EXPOSE 3000
-EXPOSE 8000
 
-# Run Reflex in production mode
-CMD ["uv", "run", "reflex", "run", "--env", "prod"]
+# Run Dash app
+CMD ["uv", "run", "python", "main.py"]

@@ -4,18 +4,14 @@ services:
     container_name: whatsrunning-app
     ports:
       - "2009:3000"
-      - "2010:8000"
     environment:
       - AUTH_USERNAME=${AUTH_USERNAME:-admin}
       - AUTH_PASSWORD=${AUTH_PASSWORD:-changeme}
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - POLL_INTERVAL_SECONDS=${POLL_INTERVAL_SECONDS:-10}
-      - PORT_SCAN_INTERVAL_SECONDS=${PORT_SCAN_INTERVAL_SECONDS:-60}
       - PORT_SCAN_RANGE=${PORT_SCAN_RANGE:-1024-10000}
       - NPM_DB_PATH=${NPM_DB_PATH:-/data/database.sqlite}
       - SESSION_SECRET_KEY=${SESSION_SECRET_KEY}
-      - SESSION_EXPIRY_HOURS=${SESSION_EXPIRY_HOURS:-24}
-      - REFLEX_API_URL=${REFLEX_API_URL:-http://localhost:2010}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ${NPM_DATA_PATH}:/data:ro

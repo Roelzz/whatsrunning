@@ -1,10 +1,12 @@
 from collectors.port_scanner import PortScanner
 
+
 def test_parse_port_range():
     """Should parse port range string"""
     scanner = PortScanner("1024-2000")
     assert scanner.start_port == 1024
     assert scanner.end_port == 2000
+
 
 def test_find_free_ports():
     """Should identify free ports in range"""
@@ -16,6 +18,7 @@ def test_find_free_ports():
     assert result["free_ranges"][0] == (1026, 1027)
     assert result["next_available"][0] == 1026
 
+
 def test_all_ports_used():
     """Should handle case where all ports are used"""
     scanner = PortScanner("1024-1026")
@@ -25,6 +28,7 @@ def test_all_ports_used():
     assert result["free_ranges"] == []
     assert result["next_available"] == []
     assert len(result["used_ports"]) == 3
+
 
 def test_no_ports_used():
     """Should handle case where no ports are used"""
@@ -36,6 +40,7 @@ def test_no_ports_used():
     assert result["next_available"] == [1024, 1025, 1026]
     assert result["used_ports"] == []
 
+
 def test_invalid_port_range_format():
     """Should raise error for invalid port range format"""
     try:
@@ -44,6 +49,7 @@ def test_invalid_port_range_format():
     except ValueError as e:
         assert "Invalid port range format" in str(e)
 
+
 def test_invalid_port_range_bounds():
     """Should raise error for out of bounds ports"""
     try:
@@ -51,6 +57,7 @@ def test_invalid_port_range_bounds():
         assert False, "Should have raised ValueError"
     except ValueError as e:
         assert "must be between 1-65535" in str(e)
+
 
 def test_invalid_port_range_order():
     """Should raise error when start > end"""

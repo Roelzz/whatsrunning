@@ -3,6 +3,7 @@ import tempfile
 import os
 from collectors.npm_collector import NPMCollector
 
+
 def test_collect_proxy_hosts():
     """Should collect proxy host data from NPM database"""
     # Create temp database with test data
@@ -37,6 +38,7 @@ def test_collect_proxy_hosts():
         assert data["npm_mappings"][0]["ssl"] is True
     finally:
         os.unlink(db_path)
+
 
 def test_collect_multiple_proxy_hosts():
     """Should handle multiple proxy hosts"""
@@ -73,6 +75,7 @@ def test_collect_multiple_proxy_hosts():
     finally:
         os.unlink(db_path)
 
+
 def test_ssl_edge_cases():
     """Should handle SSL certificate edge cases"""
     with tempfile.NamedTemporaryFile(suffix=".sqlite", delete=False) as tmp:
@@ -106,9 +109,10 @@ def test_ssl_edge_cases():
         assert len(data["npm_mappings"]) == 3
         assert data["npm_mappings"][0]["ssl"] is False  # NULL
         assert data["npm_mappings"][1]["ssl"] is False  # 0
-        assert data["npm_mappings"][2]["ssl"] is True   # 1
+        assert data["npm_mappings"][2]["ssl"] is True  # 1
     finally:
         os.unlink(db_path)
+
 
 def test_empty_domain_names():
     """Should skip proxy hosts with empty domain_names array"""

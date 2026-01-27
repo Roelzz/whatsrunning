@@ -5,6 +5,7 @@ from logger import get_logger
 
 logger = get_logger()
 
+
 class NPMCollector:
     """Collects data from Nginx Proxy Manager database"""
 
@@ -41,12 +42,14 @@ class NPMCollector:
                     if not domains:
                         continue
 
-                    npm_mappings.append({
-                        "domain": domains[0],
-                        "target_host": row["forward_host"],
-                        "target_port": row["forward_port"],
-                        "ssl": row["certificate_id"] is not None and row["certificate_id"] > 0
-                    })
+                    npm_mappings.append(
+                        {
+                            "domain": domains[0],
+                            "target_host": row["forward_host"],
+                            "target_port": row["forward_port"],
+                            "ssl": row["certificate_id"] is not None and row["certificate_id"] > 0,
+                        }
+                    )
 
             logger.debug(f"Collected {len(npm_mappings)} NPM proxy hosts")
 

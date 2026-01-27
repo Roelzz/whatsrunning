@@ -4,6 +4,7 @@ from logger import get_logger
 
 logger = get_logger()
 
+
 class DockerCollector:
     """Collects data from Docker API"""
 
@@ -42,18 +43,25 @@ class DockerCollector:
                     logger.warning(f"Failed to parse port '{internal_port_str}': {e}")
                     continue
 
-            containers.append({
-                "id": container.id,
-                "name": container.name,
-                "image": container.image.tags[0] if (container.image.tags and len(container.image.tags) > 0) else "unknown",
-                "status": container.status,
-                "networks": container_networks,
-                "internal_ports": internal_ports,
-                "exposed_ports": exposed_ports
-            })
+            image_tag = (
+                container.image.tags[0]
+                if (container.image.tags and len(container.image.tags) > 0)
+                else "unknown"
+            )
+            containers.append(
+                {
+                    "id": container.id,
+                    "name": container.name,
+                    "image": image_tag,
+                    "status": container.status,
+                    "networks": container_networks,
+                    "internal_ports": internal_ports,
+                    "exposed_ports": exposed_ports,
+                }
+            )
 
         return {
             "containers": containers,
             "networks": list(networks),
-            "host_ports": list(host_ports)
+            "host_ports": list(host_ports),
         }

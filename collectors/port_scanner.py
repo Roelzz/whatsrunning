@@ -3,6 +3,7 @@ from logger import get_logger
 
 logger = get_logger()
 
+
 class PortScanner:
     """Scans for available ports in specified range"""
 
@@ -60,5 +61,5 @@ class PortScanner:
             "scan_range": f"{self.start_port}-{self.end_port}",
             "free_ranges": free_ranges,
             "next_available": free_ports[:10] if free_ports else [],
-            "used_ports": sorted(list(used_ports))
+            "used_ports": sorted(list(used_ports)),
         }

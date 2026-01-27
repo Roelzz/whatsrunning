@@ -1,184 +1,246 @@
 # whatsrunning/components/network_graph.py
-import reflex as rx
-from state import AppState
+import plotly.graph_objects as go
+from typing import List, Dict, Set
 
 
-def container_node(container: dict) -> rx.Component:
-    """Render a container node"""
-    return rx.card(
-        rx.vstack(
-            rx.hstack(
-                rx.icon("box", size=20, color="blue"),
-                rx.heading(container["name"], size="3"),
-                spacing="2",
-                align="center",
-            ),
-            rx.badge(container["status"], color_scheme="blue"),
-            rx.text(container["image"], size="1", color="gray"),
-            spacing="2",
-            align="start",
-        ),
-        on_click=AppState.select_node(container),
-        _hover={"cursor": "pointer", "border_color": "var(--blue-9)"},
-        max_width="300px",
-    )
+def build_network_graph(
+    containers: List[Dict],
+    networks: List[str],
+    npm_mappings: List[Dict],
+    host_ports: List[int],
+    expanded_containers: Set[str],
+) -> go.Figure:
+    """
+    Build interactive network graph with nodes and edges.
 
+    expanded_containers: Set of container IDs with expanded port groups
+    """
 
-def network_node(network: str) -> rx.Component:
-    """Render a network node"""
-    return rx.card(
-        rx.vstack(
-            rx.hstack(
-                rx.icon("network", size=20, color="green"),
-                rx.heading(network, size="3"),
-                spacing="2",
-                align="center",
-            ),
-            rx.badge("Network", color_scheme="green"),
-            spacing="2",
-            align="start",
-        ),
-        max_width="250px",
-    )
+    # Node storage
+    nodes = []  # {id, x, y, label, color, size, type, data}
+    edges = []  # {source_id, target_id, color, dash}
 
+    # Helper to generate x positions with spacing
+    def spread_x(items, center=0, spacing=150):
+        count = len(items)
+        start = center - (count - 1) * spacing / 2
+        return [start + i * spacing for i in range(count)]
 
-def npm_node(npm: dict) -> rx.Component:
-    """Render an NPM mapping node"""
-    return rx.card(
-        rx.vstack(
-            rx.hstack(
-                rx.icon("globe", size=20, color="orange"),
-                rx.heading(npm["domain"], size="3"),
-                spacing="2",
-                align="center",
-            ),
-            rx.badge("NPM Proxy", color_scheme="orange"),
-            rx.text("Port: ", npm["forward_port"], size="2", color="gray"),
-            spacing="2",
-            align="start",
-        ),
-        on_click=AppState.select_node(npm),
-        _hover={"cursor": "pointer", "border_color": "var(--orange-9)"},
-        max_width="300px",
-    )
-
-
-def network_graph() -> rx.Component:
-    """Network graph visualization component"""
-
-    has_data = (AppState.containers.length() > 0) | (AppState.networks.length() > 0) | (AppState.npm_mappings.length() > 0)
-
-    return rx.cond(
-        has_data,
-        rx.vstack(
-            # Legend
-            rx.hstack(
-                rx.hstack(
-                    rx.icon("box", size=16, color="blue"),
-                    rx.text("Container", size="2"),
-                    spacing="1",
-                ),
-                rx.hstack(
-                    rx.icon("network", size=16, color="green"),
-                    rx.text("Network", size="2"),
-                    spacing="1",
-                ),
-                rx.hstack(
-                    rx.icon("globe", size=16, color="orange"),
-                    rx.text("NPM Proxy", size="2"),
-                    spacing="1",
-                ),
-                spacing="4",
-                padding="1em",
-                border_bottom="1px solid var(--gray-5)",
-            ),
-
-            # Graph area with nodes
-            rx.box(
-                rx.vstack(
-                    # NPM Mappings (top row)
-                    rx.cond(
-                        AppState.npm_mappings.length() > 0,
-                        rx.vstack(
-                            rx.text("NPM Proxies", size="2", color="gray", weight="bold"),
-                            rx.hstack(
-                                rx.foreach(
-                                    AppState.npm_mappings,
-                                    npm_node,
-                                ),
-                                spacing="3",
-                                wrap="wrap",
-                                justify="center",
-                            ),
-                            spacing="2",
-                            width="100%",
-                        ),
-                    ),
-
-                    rx.divider(),
-
-                    # Containers (middle row)
-                    rx.cond(
-                        AppState.containers.length() > 0,
-                        rx.vstack(
-                            rx.text("Containers", size="2", color="gray", weight="bold"),
-                            rx.hstack(
-                                rx.foreach(
-                                    AppState.containers,
-                                    container_node,
-                                ),
-                                spacing="3",
-                                wrap="wrap",
-                                justify="center",
-                            ),
-                            spacing="2",
-                            width="100%",
-                        ),
-                    ),
-
-                    rx.divider(),
-
-                    # Networks (bottom row)
-                    rx.cond(
-                        AppState.networks.length() > 0,
-                        rx.vstack(
-                            rx.text("Networks", size="2", color="gray", weight="bold"),
-                            rx.hstack(
-                                rx.foreach(
-                                    AppState.networks,
-                                    network_node,
-                                ),
-                                spacing="3",
-                                wrap="wrap",
-                                justify="center",
-                            ),
-                            spacing="2",
-                            width="100%",
-                        ),
-                    ),
-
-                    spacing="4",
-                    padding="2em",
-                    width="100%",
-                    align="center",
-                ),
-                width="100%",
-                min_height="400px",
-            ),
-
-            spacing="0",
-            width="100%",
-        ),
-        # Empty state
-        rx.card(
-            rx.vstack(
-                rx.icon("circle_alert", size=32, color="gray"),
-                rx.heading("No Data", size="5", color="gray"),
-                rx.text("Click 'Refresh' to load containers, networks, and NPM mappings", color="gray", size="2"),
-                spacing="3",
-                align="center",
-                padding="4em",
-            ),
-            width="100%",
+    # === NPM NODES (Layer 3) ===
+    npm_x = spread_x(npm_mappings, spacing=200)
+    for i, npm in enumerate(npm_mappings):
+        nodes.append(
+            {
+                "id": f"npm:{npm['domain']}",
+                "x": npm_x[i],
+                "y": 3,
+                "label": npm["domain"],
+                "color": "#ef4444",  # red
+                "size": 20,
+                "type": "npm",
+                "data": npm,
+            }
         )
+
+    # === CONTAINER NODES (Layer 2) ===
+    container_x = spread_x(containers, spacing=180)
+    for i, container in enumerate(containers):
+        nodes.append(
+            {
+                "id": f"container:{container['id']}",
+                "x": container_x[i],
+                "y": 2,
+                "label": container["name"],
+                "color": "#3b82f6",  # blue
+                "size": 20,
+                "type": "container",
+                "data": container,
+            }
+        )
+
+        # Port group node (collapsed state)
+        container_id = container["id"]
+        is_expanded = container_id in expanded_containers
+        port_count = len(container.get("internal_ports", []))
+
+        if port_count > 0:
+            if not is_expanded:
+                # Collapsed: single port group node
+                nodes.append(
+                    {
+                        "id": f"ports:{container_id}",
+                        "x": container_x[i],
+                        "y": 1.5,
+                        "label": f"{port_count} ports",
+                        "color": "#8b5cf6",  # purple
+                        "size": 12,
+                        "type": "port_group",
+                        "data": {
+                            "container_id": container_id,
+                            "ports": container["internal_ports"],
+                        },
+                    }
+                )
+
+                # Edge: container -> port group
+                edges.append(
+                    {
+                        "source_id": f"container:{container_id}",
+                        "target_id": f"ports:{container_id}",
+                        "color": "#8b5cf6",
+                        "dash": "solid",
+                    }
+                )
+            else:
+                # Expanded: show individual ports
+                port_x = spread_x(container["internal_ports"], center=container_x[i], spacing=30)
+                for j, port in enumerate(container["internal_ports"]):
+                    nodes.append(
+                        {
+                            "id": f"port:{container_id}:{port}",
+                            "x": port_x[j],
+                            "y": 1.5,
+                            "label": str(port),
+                            "color": "#8b5cf6",
+                            "size": 8,
+                            "type": "port",
+                            "data": {"container_id": container_id, "port": port},
+                        }
+                    )
+
+                    # Edge: container -> individual port
+                    edges.append(
+                        {
+                            "source_id": f"container:{container_id}",
+                            "target_id": f"port:{container_id}:{port}",
+                            "color": "#8b5cf6",
+                            "dash": "solid",
+                        }
+                    )
+
+                    # Edge: internal port -> exposed port (if mapped)
+                    exposed_ports = container.get("exposed_ports", {})
+                    if port in exposed_ports:
+                        host_port = exposed_ports[port]
+                        edges.append(
+                            {
+                                "source_id": f"port:{container_id}:{port}",
+                                "target_id": f"exposed:{host_port}",
+                                "color": "#f59e0b",
+                                "dash": "solid",
+                            }
+                        )
+
+    # === NETWORK NODES (Layer 0) ===
+    network_x = spread_x(networks, spacing=200)
+    for i, network in enumerate(networks):
+        nodes.append(
+            {
+                "id": f"network:{network}",
+                "x": network_x[i],
+                "y": 0,
+                "label": network,
+                "color": "#10b981",  # green
+                "size": 18,
+                "type": "network",
+                "data": {"name": network},
+            }
+        )
+
+    # === EXPOSED PORT NODES (Layer 1, right cluster) ===
+    exposed_x = 1000  # Fixed x position (far right)
+    exposed_y_start = 0.5
+    for i, port in enumerate(sorted(set(host_ports))):
+        nodes.append(
+            {
+                "id": f"exposed:{port}",
+                "x": exposed_x,
+                "y": exposed_y_start + i * 0.1,
+                "label": str(port),
+                "color": "#f59e0b",  # orange
+                "size": 10,
+                "type": "exposed_port",
+                "data": {"port": port},
+            }
+        )
+
+    # === EDGES: Container -> Network ===
+    for container in containers:
+        for network in container.get("networks", []):
+            edges.append(
+                {
+                    "source_id": f"container:{container['id']}",
+                    "target_id": f"network:{network}",
+                    "color": "#10b981",
+                    "dash": "dash",
+                }
+            )
+
+    # === EDGES: NPM -> Exposed Port ===
+    for npm in npm_mappings:
+        target_port = npm.get("target_port")
+        if target_port in host_ports:
+            edges.append(
+                {
+                    "source_id": f"npm:{npm['domain']}",
+                    "target_id": f"exposed:{target_port}",
+                    "color": "#ef4444",
+                    "dash": "solid",
+                }
+            )
+
+    # === BUILD PLOTLY FIGURE ===
+
+    # Create node lookup
+    node_lookup = {node["id"]: i for i, node in enumerate(nodes)}
+
+    # Edge traces (one trace per edge for proper hover)
+    edge_traces = []
+    for edge in edges:
+        source = nodes[node_lookup[edge["source_id"]]]
+        target = nodes[node_lookup[edge["target_id"]]]
+
+        edge_traces.append(
+            go.Scatter(
+                x=[source["x"], target["x"]],
+                y=[source["y"], target["y"]],
+                mode="lines",
+                line=dict(width=1, color=edge["color"], dash=edge["dash"]),
+                hoverinfo="none",
+                showlegend=False,
+            )
+        )
+
+    # Node trace
+    node_trace = go.Scatter(
+        x=[node["x"] for node in nodes],
+        y=[node["y"] for node in nodes],
+        mode="markers+text",
+        text=[node["label"] for node in nodes],
+        textposition="top center",
+        marker=dict(
+            size=[node["size"] for node in nodes],
+            color=[node["color"] for node in nodes],
+            line=dict(width=2, color="white"),
+        ),
+        hoverinfo="text",
+        hovertext=[f"{node['type']}: {node['label']}" for node in nodes],
+        customdata=[node["id"] for node in nodes],  # For click events
+        showlegend=False,
     )
+
+    # Combine
+    fig = go.Figure(data=edge_traces + [node_trace])
+
+    fig.update_layout(
+        showlegend=False,
+        hovermode="closest",
+        xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+        yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+        plot_bgcolor="#f8f9fa",
+        height=700,
+        margin=dict(l=20, r=20, t=40, b=20),
+        title="Network Topology",
+    )
+
+    return fig

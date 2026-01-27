@@ -4,6 +4,7 @@ import pytest
 from unittest.mock import Mock, patch
 from state import AppState
 
+
 @pytest.fixture
 def mock_env():
     """Set up test environment variables"""
@@ -11,6 +12,7 @@ def mock_env():
     os.environ["AUTH_PASSWORD"] = "testpass"
     os.environ["NPM_DB_PATH"] = "/tmp/test.db"
     os.environ["PORT_SCAN_RANGE"] = "1024-1030"
+
 
 def test_login_flow(mock_env):
     """Test authentication flow"""
@@ -30,8 +32,9 @@ def test_login_flow(mock_env):
     state.logout()
     assert not state.is_authenticated
 
-@patch('collectors.docker_collector.docker.from_env')
-@patch('collectors.npm_collector.sqlite3.connect')
+
+@patch("collectors.docker_collector.docker.from_env")
+@patch("collectors.npm_collector.sqlite3.connect")
 def test_data_refresh_flow(mock_sqlite, mock_docker, mock_env):
     """Test full data collection flow"""
     # Mock Docker
@@ -42,10 +45,7 @@ def test_data_refresh_flow(mock_sqlite, mock_docker, mock_env):
     mock_container.image.tags = ["nginx:latest"]
     mock_container.status = "running"
     mock_container.attrs = {
-        "NetworkSettings": {
-            "Networks": {"bridge": {}},
-            "Ports": {"80/tcp": [{"HostPort": "8080"}]}
-        }
+        "NetworkSettings": {"Networks": {"bridge": {}}, "Ports": {"80/tcp": [{"HostPort": "8080"}]}}
     }
     mock_client.containers.list.return_value = [mock_container]
     mock_docker.return_value = mock_client
@@ -57,9 +57,9 @@ def test_data_refresh_flow(mock_sqlite, mock_docker, mock_env):
     # Mock row with dictionary-like access
     mock_row = {
         "domain_names": '["example.com"]',
-        "forward_host": 'localhost',
+        "forward_host": "localhost",
         "forward_port": 8080,
-        "certificate_id": 1
+        "certificate_id": 1,
     }
     mock_cursor.fetchall.return_value = [mock_row]
     mock_conn.cursor.return_value = mock_cursor

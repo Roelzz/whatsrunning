@@ -1,6 +1,7 @@
 import os
 from logger import get_logger
 
+
 def test_logger_respects_log_level(capsys):
     """Logger should respect LOG_LEVEL env var"""
     original = os.environ.get("LOG_LEVEL")
@@ -17,6 +18,7 @@ def test_logger_respects_log_level(capsys):
             os.environ["LOG_LEVEL"] = original
         else:
             os.environ.pop("LOG_LEVEL", None)
+
 
 def test_logger_default_level(capsys):
     """Logger should default to INFO level"""
