@@ -7,7 +7,7 @@ services:
       - "8001:8000"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - /DATA/AppData/nginxproxymanager/data:/data:ro
+      - ${NPM_DATA_PATH}:/data:ro
     networks:
       - whatsrunning_network
     restart: unless-stopped
