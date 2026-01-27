@@ -2,6 +2,8 @@
 import reflex as rx
 from typing import Dict, Any, List
 import os
+import secrets
+from datetime import datetime
 from whatsrunning.collectors.docker_collector import DockerCollector
 from whatsrunning.collectors.npm_collector import NPMCollector
 from whatsrunning.collectors.port_scanner import PortScanner
@@ -34,7 +36,7 @@ class AppState(rx.State):
         expected_username = os.getenv("AUTH_USERNAME", "admin")
         expected_password = os.getenv("AUTH_PASSWORD", "admin")
 
-        if username == expected_username and password == expected_password:
+        if secrets.compare_digest(username, expected_username) and secrets.compare_digest(password, expected_password):
             self.is_authenticated = True
             self.username = username
             logger.info(f"User {username} logged in")
@@ -76,7 +78,6 @@ class AppState(rx.State):
             port_scanner = PortScanner(port_range)
             self.available_ports = port_scanner.scan(set(self.host_ports))
 
-            from datetime import datetime
             self.last_updated = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
             logger.info("Data refreshed successfully")
