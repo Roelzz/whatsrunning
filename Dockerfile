@@ -2,9 +2,9 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-# Install uv using official installer with required dependencies
+# Install uv and runtime dependencies for Reflex
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends curl ca-certificates && \
+    apt-get install -y --no-install-recommends curl ca-certificates unzip && \
     curl -LsSf https://astral.sh/uv/install.sh | sh && \
     apt-get remove -y curl && \
     apt-get autoremove -y && \
