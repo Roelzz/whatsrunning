@@ -16,4 +16,4 @@ EXPOSE 3000
 EXPOSE 8000
 
 # Run Reflex in production mode
-CMD ["uv", "run", "reflex", "run", "--env", "prod", "--backend-only"]
+CMD ["uv", "run", "reflex", "run", "--env", "prod"]

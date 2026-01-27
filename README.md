@@ -31,6 +31,8 @@ uv run ruff format .       # Format
 2. Build and run:
    ```bash
    docker-compose up --build -d
+   # or with podman
+   podman-compose up --build -d
    ```
 
 3. Access: http://localhost:2009
