@@ -1,18 +1,22 @@
-# Multi-stage build: copy uv from official image
-FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim AS uv
-
 FROM python:3.12-slim
 
 WORKDIR /app
 
-# Copy uv binary from official image
-COPY --from=uv /uv /uvx /bin/
+# Install uv using official installer with required dependencies
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends curl ca-certificates && \
+    curl -LsSf https://astral.sh/uv/install.sh | sh && \
+    apt-get remove -y curl && \
+    apt-get autoremove -y && \
+    rm -rf /var/lib/apt/lists/*
+
+# Add uv to PATH
+ENV PATH="/root/.local/bin:$PATH"
 
 # Copy dependency files
 COPY pyproject.toml uv.lock ./
 
 # Install dependencies without installing the project itself
-# Use cache mount for faster rebuilds
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-install-project --no-dev
 
