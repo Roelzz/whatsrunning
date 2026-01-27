@@ -11,7 +11,7 @@ def login_page() -> rx.Component:
 
             rx.card(
                 rx.vstack(
-                    rx.form(
+                    rx.form.root(
                         rx.vstack(
                             rx.input(
                                 placeholder="Username",
@@ -24,18 +24,16 @@ def login_page() -> rx.Component:
                                 type="password",
                                 size="3",
                             ),
-                            rx.button(
-                                "Login",
-                                type="submit",
-                                size="3",
-                                width="100%",
+                            rx.form.submit(
+                                rx.button(
+                                    "Login",
+                                    size="3",
+                                    width="100%",
+                                ),
                             ),
                             spacing="3",
                         ),
-                        on_submit=lambda form_data: AppState.login(
-                            form_data["username"],
-                            form_data["password"]
-                        ),
+                        on_submit=AppState.login,
                     ),
                     rx.cond(
                         AppState.error_message != "",

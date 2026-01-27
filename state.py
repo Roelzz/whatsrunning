@@ -31,8 +31,11 @@ class AppState(rx.State):
     is_loading: bool = False
     error_message: str = ""
 
-    def login(self, username: str, password: str):
+    def login(self, form_data: dict):
         """Validate credentials and set authentication state"""
+        username = form_data.get("username", "")
+        password = form_data.get("password", "")
+
         expected_username = os.getenv("AUTH_USERNAME", "admin")
         expected_password = os.getenv("AUTH_PASSWORD", "admin")
 
