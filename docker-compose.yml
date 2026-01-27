@@ -3,13 +3,15 @@ services:
     build: .
     container_name: whatsrunning-app
     ports:
-      - "2009:2009"
+      - "2009:3000"
+      - "8001:8000"
     env_file:
       - .env
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - npm_data:/data:ro
     networks:
       - whatsrunning_network
-    volumes:
-      - whatsrunning_data:/app/data
     restart: unless-stopped
 
 networks:
@@ -17,4 +19,7 @@ networks:
     driver: bridge
 
 volumes:
-  whatsrunning_data:
+  npm_data:
+    external: true
+    # Note: Adjust this to point to your NPM volume
+    # Example: name: nginxproxymanager_data

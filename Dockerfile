@@ -2,10 +2,18 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
+# Install UV
+RUN pip install uv
+
+# Copy project files
 COPY . .
 
-RUN pip install uv && uv sync
+# Install dependencies
+RUN uv sync
 
-EXPOSE 2009
+# Expose Reflex default port
+EXPOSE 3000
+EXPOSE 8000
 
-CMD ["uv", "run", "python", "main.py"]
+# Run Reflex in production mode
+CMD ["uv", "run", "reflex", "run", "--env", "prod", "--backend-only"]

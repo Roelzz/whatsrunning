@@ -22,6 +22,15 @@ uv run ruff check .        # Lint
 uv run ruff format .       # Format
 ```
 
-## Deployment
+## Docker Deployment
 
-See `docker-compose.yml` for deployment instructions.
+1. Configure NPM volume in docker-compose.yml:
+   - Find your NPM volume: `docker volume ls | grep nginx`
+   - Update external volume name in docker-compose.yml
+
+2. Build and run:
+   ```bash
+   docker-compose up --build -d
+   ```
+
+3. Access: http://localhost:2009
