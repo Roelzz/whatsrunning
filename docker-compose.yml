@@ -7,7 +7,7 @@ services:
       - "8001:8000"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - npm_data:/data:ro
+      - /DATA/AppData/nginxproxymanager/data:/data:ro
     networks:
       - whatsrunning_network
     restart: unless-stopped
@@ -15,9 +15,3 @@ services:
 networks:
   whatsrunning_network:
     driver: bridge
-
-volumes:
-  npm_data:
-    external: true
-    # Note: Adjust this to point to your NPM volume
-    # Example: name: nginxproxymanager_data
