@@ -5,6 +5,8 @@ services:
     ports:
       - "2009:3000"
       - "2010:8000"
+    environment:
+      - REFLEX_API_URL=${REFLEX_API_URL:-http://localhost:2010}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ${NPM_DATA_PATH}:/data:ro
