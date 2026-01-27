@@ -1,4 +1,3 @@
-import socket
 from typing import Set, List, Tuple, Dict, Any
 from whatsrunning.logger import get_logger
 
@@ -12,8 +11,19 @@ class PortScanner:
 
     def _parse_range(self, port_range: str) -> Tuple[int, int]:
         """Parse port range string like '1024-10000'"""
-        start, end = port_range.split("-")
-        return int(start), int(end)
+        try:
+            parts = port_range.split("-")
+            if len(parts) != 2:
+                raise ValueError(f"Invalid port range format: {port_range}")
+            start, end = int(parts[0]), int(parts[1])
+            if start < 1 or end > 65535:
+                raise ValueError(f"Port range must be between 1-65535: {port_range}")
+            if start > end:
+                raise ValueError(f"Start port must be <= end port: {port_range}")
+            return start, end
+        except (ValueError, AttributeError) as e:
+            logger.error(f"Failed to parse port range: {e}")
+            raise
 
     def scan(self, known_used_ports: Set[int]) -> Dict[str, Any]:
         """
@@ -27,9 +37,6 @@ class PortScanner:
         """
         all_ports = range(self.start_port, self.end_port + 1)
         used_ports = set(known_used_ports)
-
-        # Quick check for listening sockets (skip full bind test for performance)
-        # For now, trust known_used_ports from Docker
 
         free_ports = sorted([p for p in all_ports if p not in used_ports])
 
