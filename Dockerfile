@@ -6,8 +6,6 @@ WORKDIR /app
 RUN apt-get update && \
     apt-get install -y --no-install-recommends curl ca-certificates unzip && \
     curl -LsSf https://astral.sh/uv/install.sh | sh && \
-    apt-get remove -y curl && \
-    apt-get autoremove -y && \
     rm -rf /var/lib/apt/lists/*
 
 # Add uv to PATH
