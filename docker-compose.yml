@@ -1,0 +1,20 @@
+services:
+  app:
+    build: .
+    container_name: whatsrunning-app
+    ports:
+      - "2009:2009"
+    env_file:
+      - .env
+    networks:
+      - whatsrunning_network
+    volumes:
+      - whatsrunning_data:/app/data
+    restart: unless-stopped
+
+networks:
+  whatsrunning_network:
+    driver: bridge
+
+volumes:
+  whatsrunning_data:
