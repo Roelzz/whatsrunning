@@ -74,6 +74,13 @@ def test_data_refresh_flow(mock_sqlite, mock_docker, mock_env):
     state = AppState()
     state.refresh_data()
 
+    # Verify Docker collector was called
+    mock_docker.assert_called_once()
+    mock_client.containers.list.assert_called_once()
+
+    # Verify NPM collector was called
+    mock_sqlite.assert_called()
+
     # Verify data collected
     assert len(state.containers) == 1
     assert state.containers[0]["name"] == "test"
