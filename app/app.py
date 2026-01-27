@@ -6,11 +6,13 @@ from state import AppState
 from services.poller import BackgroundPoller
 
 def index() -> rx.Component:
-    """Root route redirects to dashboard"""
-    return rx.cond(
-        AppState.is_authenticated,
-        rx.redirect("/dashboard"),
-        rx.redirect("/login"),
+    """Root route checks auth and shows appropriate content"""
+    return rx.fragment(
+        rx.cond(
+            AppState.is_authenticated,
+            rx.text("Redirecting to dashboard...", on_mount=rx.redirect("/dashboard")),
+            rx.text("Redirecting to login...", on_mount=rx.redirect("/login")),
+        )
     )
 
 app = rx.App()
