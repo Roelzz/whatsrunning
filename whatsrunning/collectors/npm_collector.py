@@ -15,7 +15,7 @@ class NPMCollector:
     def _check_database(self):
         """Verify database exists and is readable"""
         try:
-            with sqlite3.connect(f"file:{self.db_path}?mode=ro", uri=True) as conn:
+            with sqlite3.connect(f"file:{self.db_path}?mode=ro", uri=True):
                 pass
             logger.info(f"Connected to NPM database: {self.db_path}")
         except Exception as e:

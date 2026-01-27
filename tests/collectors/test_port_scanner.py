@@ -39,7 +39,7 @@ def test_no_ports_used():
 def test_invalid_port_range_format():
     """Should raise error for invalid port range format"""
     try:
-        scanner = PortScanner("1024")
+        PortScanner("1024")
         assert False, "Should have raised ValueError"
     except ValueError as e:
         assert "Invalid port range format" in str(e)
@@ -47,7 +47,7 @@ def test_invalid_port_range_format():
 def test_invalid_port_range_bounds():
     """Should raise error for out of bounds ports"""
     try:
-        scanner = PortScanner("1024-70000")
+        PortScanner("1024-70000")
         assert False, "Should have raised ValueError"
     except ValueError as e:
         assert "must be between 1-65535" in str(e)
@@ -55,7 +55,7 @@ def test_invalid_port_range_bounds():
 def test_invalid_port_range_order():
     """Should raise error when start > end"""
     try:
-        scanner = PortScanner("2000-1024")
+        PortScanner("2000-1024")
         assert False, "Should have raised ValueError"
     except ValueError as e:
         assert "Start port must be <= end port" in str(e)
