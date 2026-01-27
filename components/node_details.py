@@ -13,8 +13,10 @@ def node_details_panel() -> rx.Component:
                 rx.foreach(
                     AppState.selected_node.items(),
                     lambda item: rx.hstack(
-                        rx.text(f"{item[0]}:", weight="bold", size="2"),
-                        rx.text(f"{item[1]}", size="2"),
+                        rx.text(item[0], ":", weight="bold", size="2"),
+                        rx.text(item[1], size="2", word_break="break-word"),
+                        spacing="2",
+                        align="start",
                     ),
                 ),
                 spacing="2",

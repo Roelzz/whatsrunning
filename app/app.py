@@ -1,5 +1,8 @@
 # whatsrunning/whatsrunning.py
 """Main Reflex application"""
+from dotenv import load_dotenv
+load_dotenv()  # Load .env before other imports
+
 import reflex as rx
 from pages import login_page, dashboard_page
 from state import AppState

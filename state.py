@@ -1,4 +1,7 @@
 # whatsrunning/state.py
+from dotenv import load_dotenv
+load_dotenv()  # Load .env at module level
+
 import reflex as rx
 from typing import Dict, Any, List
 import os
@@ -17,6 +20,18 @@ class AppState(rx.State):
     # Authentication
     is_authenticated: bool = False
     username: str = ""
+
+    # Login form fields
+    login_username: str = ""
+    login_password: str = ""
+
+    def set_login_username(self, value: str):
+        """Set login username field"""
+        self.login_username = value
+
+    def set_login_password(self, value: str):
+        """Set login password field"""
+        self.login_password = value
 
     # Data
     containers: List[Dict[str, Any]] = []
@@ -37,29 +52,59 @@ class AppState(rx.State):
     is_loading: bool = False
     error_message: str = ""
 
-    def login(self, form_data: dict):
+    def login(self):
         """Validate credentials and set authentication state"""
-        username = form_data.get("username", "")
-        password = form_data.get("password", "")
+        import sys
+
+        # Force output to stderr to ensure it's captured
+        sys.stderr.write("=== LOGIN METHOD CALLED ===\n")
+        sys.stderr.write(f"login_username: '{self.login_username}' (len={len(self.login_username)})\n")
+        sys.stderr.write(f"login_password: '{self.login_password}' (len={len(self.login_password)})\n")
+        sys.stderr.flush()
 
         expected_username = os.getenv("AUTH_USERNAME", "admin")
         expected_password = os.getenv("AUTH_PASSWORD", "admin")
 
-        if secrets.compare_digest(username, expected_username) and secrets.compare_digest(password, expected_password):
+        sys.stderr.write(f"Expected username: '{expected_username}' (len={len(expected_username)})\n")
+        sys.stderr.write(f"Expected password: '{expected_password}' (len={len(expected_password)})\n")
+        sys.stderr.flush()
+
+        # Log types
+        sys.stderr.write(f"Types - login: {type(self.login_username)}, expected: {type(expected_username)}\n")
+        sys.stderr.flush()
+
+        # Test comparison
+        username_match = secrets.compare_digest(self.login_username, expected_username)
+        password_match = secrets.compare_digest(self.login_password, expected_password)
+
+        sys.stderr.write(f"Username match: {username_match}\n")
+        sys.stderr.write(f"Password match: {password_match}\n")
+        sys.stderr.flush()
+
+        if username_match and password_match:
             self.is_authenticated = True
-            self.username = username
-            logger.info(f"User {username} logged in")
-            return rx.redirect("/dashboard")
+            self.username = self.login_username
+            sys.stderr.write(f"✓ User {self.login_username} logged in successfully\n")
+            sys.stderr.flush()
+            logger.info(f"User {self.login_username} logged in successfully")
+            # Clear login fields
+            self.login_username = ""
+            self.login_password = ""
+            yield
+            yield rx.redirect("/dashboard")
         else:
+            sys.stderr.write(f"✗ AUTHENTICATION FAILED - username_match={username_match}, password_match={password_match}\n")
+            sys.stderr.flush()
             self.error_message = "Invalid credentials"
-            logger.warning(f"Failed login attempt for {username}")
+            logger.warning(f"Failed login attempt for username: '{self.login_username}'")
 
     def logout(self):
         """Clear authentication state"""
         logger.info(f"User {self.username} logged out")
         self.is_authenticated = False
         self.username = ""
-        return rx.redirect("/login")
+        yield
+        yield rx.redirect("/login")
 
     def refresh_data(self):
         """Collect fresh data from Docker and NPM"""
@@ -105,4 +150,12 @@ class AppState(rx.State):
 
     def select_node(self, node_data: Dict[str, Any]):
         """Set selected node for detail panel"""
-        self.selected_node = node_data
+        # Format all values to strings to prevent React rendering errors
+        formatted_data = {}
+        for key, value in node_data.items():
+            if isinstance(value, (dict, list)):
+                # Convert complex types to string representation
+                formatted_data[key] = str(value)
+            else:
+                formatted_data[key] = value
+        self.selected_node = formatted_data

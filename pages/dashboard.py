@@ -3,6 +3,7 @@ from state import AppState
 from components.header import header
 from components.available_ports import available_ports_panel
 from components.node_details import node_details_panel
+from components.network_graph import network_graph
 
 def dashboard_page() -> rx.Component:
     """Main dashboard with visualization"""
@@ -13,17 +14,14 @@ def dashboard_page() -> rx.Component:
 
             rx.container(
                 rx.vstack(
-                    # Placeholder for graph visualization
+                    # Network graph visualization
                     rx.card(
                         rx.vstack(
                             rx.heading("Network Visualization", size="6"),
-                            rx.text("Graph visualization will go here", color="gray"),
-                            rx.text(f"Containers: {AppState.containers.length()}", size="2"),
-                            rx.text(f"Networks: {AppState.networks.length()}", size="2"),
-                            rx.text(f"NPM Mappings: {AppState.npm_mappings.length()}", size="2"),
-                            spacing="2",
+                            network_graph(),
+                            spacing="3",
                         ),
-                        min_height="400px",
+                        width="100%",
                     ),
 
                     # Bottom panels
