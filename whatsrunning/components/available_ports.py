@@ -20,7 +20,7 @@ def available_ports_panel() -> rx.Component:
                 rx.foreach(
                     AppState.available_ports.get("free_ranges", []),
                     lambda range_tuple: rx.text(
-                        f"{range_tuple[0]}-{range_tuple[1]} ({range_tuple[1] - range_tuple[0] + 1} ports)",
+                        f"{range_tuple[0]}-{range_tuple[1]}",
                         size="2",
                     ),
                 ),
