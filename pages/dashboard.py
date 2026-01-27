@@ -1,4 +1,3 @@
-# whatsrunning/pages/dashboard.py
 import reflex as rx
 from state import AppState
 from components.header import header
@@ -45,5 +44,5 @@ def dashboard_page() -> rx.Component:
             width="100%",
             spacing="0",
         ),
-        rx.redirect("/login"),
+        rx.text("Redirecting to login...", on_mount=rx.redirect("/login")),
     )
