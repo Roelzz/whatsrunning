@@ -1,9 +1,9 @@
 # whatsrunning/whatsrunning.py
 """Main Reflex application"""
 import reflex as rx
-from whatsrunning.pages import login_page, dashboard_page
-from whatsrunning.state import AppState
-from whatsrunning.services.poller import BackgroundPoller
+from pages import login_page, dashboard_page
+from state import AppState
+from services.poller import BackgroundPoller
 
 def index() -> rx.Component:
     """Root route redirects to dashboard"""

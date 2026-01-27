@@ -1,6 +1,6 @@
 # tests/collectors/test_docker_collector.py
 from unittest.mock import Mock, patch
-from whatsrunning.collectors.docker_collector import DockerCollector
+from collectors.docker_collector import DockerCollector
 
 def test_collect_containers():
     """Should collect container data from Docker API"""

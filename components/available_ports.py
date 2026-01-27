@@ -1,6 +1,6 @@
 # whatsrunning/components/available_ports.py
 import reflex as rx
-from whatsrunning.state import AppState
+from state import AppState
 
 def available_ports_panel() -> rx.Component:
     """Panel showing available ports"""

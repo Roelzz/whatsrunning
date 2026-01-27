@@ -1,7 +1,7 @@
 import sqlite3
 import json
 from typing import Dict, Any
-from whatsrunning.logger import get_logger
+from logger import get_logger
 
 logger = get_logger()
 

@@ -1,6 +1,6 @@
 # whatsrunning/components/header.py
 import reflex as rx
-from whatsrunning.state import AppState
+from state import AppState
 
 def header() -> rx.Component:
     """Header with title and logout button"""

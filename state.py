@@ -4,10 +4,10 @@ from typing import Dict, Any, List
 import os
 import secrets
 from datetime import datetime
-from whatsrunning.collectors.docker_collector import DockerCollector
-from whatsrunning.collectors.npm_collector import NPMCollector
-from whatsrunning.collectors.port_scanner import PortScanner
-from whatsrunning.logger import get_logger
+from collectors.docker_collector import DockerCollector
+from collectors.npm_collector import NPMCollector
+from collectors.port_scanner import PortScanner
+from logger import get_logger
 
 logger = get_logger()
 

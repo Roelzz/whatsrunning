@@ -1,7 +1,7 @@
 import sqlite3
 import tempfile
 import os
-from whatsrunning.collectors.npm_collector import NPMCollector
+from collectors.npm_collector import NPMCollector
 
 def test_collect_proxy_hosts():
     """Should collect proxy host data from NPM database"""

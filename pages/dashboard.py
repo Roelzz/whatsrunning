@@ -1,9 +1,9 @@
 # whatsrunning/pages/dashboard.py
 import reflex as rx
-from whatsrunning.state import AppState
-from whatsrunning.components.header import header
-from whatsrunning.components.available_ports import available_ports_panel
-from whatsrunning.components.node_details import node_details_panel
+from state import AppState
+from components.header import header
+from components.available_ports import available_ports_panel
+from components.node_details import node_details_panel
 
 def dashboard_page() -> rx.Component:
     """Main dashboard with visualization"""

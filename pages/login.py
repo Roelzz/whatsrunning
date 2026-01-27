@@ -1,6 +1,6 @@
 # whatsrunning/pages/login.py
 import reflex as rx
-from whatsrunning.state import AppState
+from state import AppState
 
 def login_page() -> rx.Component:
     """Login page with username/password form"""

@@ -1,4 +1,4 @@
-from whatsrunning.collectors.port_scanner import PortScanner
+from collectors.port_scanner import PortScanner
 
 def test_parse_port_range():
     """Should parse port range string"""

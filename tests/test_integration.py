@@ -2,7 +2,7 @@
 import os
 import pytest
 from unittest.mock import Mock, patch
-from whatsrunning.state import AppState
+from state import AppState
 
 @pytest.fixture
 def mock_env():
@@ -30,8 +30,8 @@ def test_login_flow(mock_env):
     state.logout()
     assert not state.is_authenticated
 
-@patch('whatsrunning.collectors.docker_collector.docker.from_env')
-@patch('whatsrunning.collectors.npm_collector.sqlite3.connect')
+@patch('collectors.docker_collector.docker.from_env')
+@patch('collectors.npm_collector.sqlite3.connect')
 def test_data_refresh_flow(mock_sqlite, mock_docker, mock_env):
     """Test full data collection flow"""
     # Mock Docker

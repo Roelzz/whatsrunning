@@ -2,7 +2,7 @@
 import threading
 import time
 import os
-from whatsrunning.logger import get_logger
+from logger import get_logger
 
 logger = get_logger()
 

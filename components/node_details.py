@@ -1,6 +1,6 @@
 # whatsrunning/components/node_details.py
 import reflex as rx
-from whatsrunning.state import AppState
+from state import AppState
 
 def node_details_panel() -> rx.Component:
     """Panel showing selected node details"""

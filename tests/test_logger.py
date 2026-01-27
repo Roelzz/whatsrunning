@@ -1,5 +1,5 @@
 import os
-from whatsrunning.logger import get_logger
+from logger import get_logger
 
 def test_logger_respects_log_level(capsys):
     """Logger should respect LOG_LEVEL env var"""
