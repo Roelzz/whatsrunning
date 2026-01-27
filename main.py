@@ -47,4 +47,4 @@ def display_page(pathname):
 
 
 if __name__ == "__main__":
-    app.run_server(host="0.0.0.0", port=3000, debug=os.getenv("LOG_LEVEL") == "DEBUG")
+    app.run(host="0.0.0.0", port=3000, debug=os.getenv("LOG_LEVEL") == "DEBUG")
