@@ -1,0 +1,92 @@
+# whatsrunning/state.py
+import reflex as rx
+from typing import Dict, Any, List
+import os
+from whatsrunning.collectors.docker_collector import DockerCollector
+from whatsrunning.collectors.npm_collector import NPMCollector
+from whatsrunning.collectors.port_scanner import PortScanner
+from whatsrunning.logger import get_logger
+
+logger = get_logger()
+
+class AppState(rx.State):
+    """Global application state"""
+
+    # Authentication
+    is_authenticated: bool = False
+    username: str = ""
+
+    # Data
+    containers: List[Dict[str, Any]] = []
+    networks: List[str] = []
+    host_ports: List[int] = []
+    npm_mappings: List[Dict[str, Any]] = []
+    available_ports: Dict[str, Any] = {}
+
+    # UI state
+    selected_node: Dict[str, Any] = {}
+    last_updated: str = ""
+    is_loading: bool = False
+    error_message: str = ""
+
+    def login(self, username: str, password: str):
+        """Validate credentials and set authentication state"""
+        expected_username = os.getenv("AUTH_USERNAME", "admin")
+        expected_password = os.getenv("AUTH_PASSWORD", "admin")
+
+        if username == expected_username and password == expected_password:
+            self.is_authenticated = True
+            self.username = username
+            logger.info(f"User {username} logged in")
+            return rx.redirect("/dashboard")
+        else:
+            self.error_message = "Invalid credentials"
+            logger.warning(f"Failed login attempt for {username}")
+
+    def logout(self):
+        """Clear authentication state"""
+        logger.info(f"User {self.username} logged out")
+        self.is_authenticated = False
+        self.username = ""
+        return rx.redirect("/login")
+
+    def refresh_data(self):
+        """Collect fresh data from Docker and NPM"""
+        self.is_loading = True
+        self.error_message = ""
+
+        try:
+            # Collect Docker data
+            docker_collector = DockerCollector()
+            docker_data = docker_collector.collect()
+
+            self.containers = docker_data["containers"]
+            self.networks = docker_data["networks"]
+            self.host_ports = docker_data["host_ports"]
+
+            # Collect NPM data
+            npm_db_path = os.getenv("NPM_DB_PATH", "/data/database.sqlite")
+            npm_collector = NPMCollector(npm_db_path)
+            npm_data = npm_collector.collect()
+
+            self.npm_mappings = npm_data["npm_mappings"]
+
+            # Scan ports
+            port_range = os.getenv("PORT_SCAN_RANGE", "1024-10000")
+            port_scanner = PortScanner(port_range)
+            self.available_ports = port_scanner.scan(set(self.host_ports))
+
+            from datetime import datetime
+            self.last_updated = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+            logger.info("Data refreshed successfully")
+
+        except Exception as e:
+            self.error_message = str(e)
+            logger.error(f"Failed to refresh data: {e}")
+        finally:
+            self.is_loading = False
+
+    def select_node(self, node_data: Dict[str, Any]):
+        """Set selected node for detail panel"""
+        self.selected_node = node_data
