@@ -4,7 +4,6 @@ services:
     container_name: whatsrunning-app
     ports:
       - "2009:3000"
-      - "8001:8000"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ${NPM_DATA_PATH}:/data:ro
