@@ -11,7 +11,7 @@ app = rx.App()
 poller = BackgroundPoller(AppState.refresh_data)
 poller.start()
 
-# Root redirects to login
-app.add_page(rx.fragment(), route="/", on_load=rx.redirect("/login"))
+# Routes
+app.add_page(login_page, route="/")
 app.add_page(login_page, route="/login")
 app.add_page(dashboard_page, route="/dashboard", on_load=AppState.refresh_data)
