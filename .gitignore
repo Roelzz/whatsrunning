@@ -1,3 +1,9 @@
+*.db
+.web
+.states
+assets/external/
+rxconfig.py
+initial_implementation/
 # Python
 __pycache__/
 *.py[cod]
