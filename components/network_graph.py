@@ -111,15 +111,6 @@ def build_network_graph(
                 "type": "stack_group",
                 "data": stack,
             })
-
-            # Edges: stack -> containers (hidden when collapsed)
-            for container in stack_to_containers.get(stack_name, []):
-                edges.append({
-                    "source_id": f"stack:{stack_name}",
-                    "target_id": f"container:{container['id']}",
-                    "color": stack_colors[stack_name],
-                    "dash": "dot",
-                })
         else:
             # Expanded: show individual stack node + visible containers
             nodes.append({
@@ -134,26 +125,34 @@ def build_network_graph(
             })
 
     # === CONTAINER NODES (Layer 2) ===
-    # Position containers within their stack groups when expanded
-    for stack in stacks:
-        stack_name = stack["name"]
-        is_stack_expanded = stack_name in expanded_stacks
-        stack_containers = stack_to_containers.get(stack_name, [])
+    # Create a mapping of stack name to X position for positioning
+    stack_x_map = {stacks[i]["name"]: stack_x[i] for i in range(len(stacks))}
 
-        # Find stack's X position
-        stack_idx = next(i for i, s in enumerate(stacks) if s["name"] == stack_name)
-        stack_center_x = stack_x[stack_idx]
+    # Group containers by stack for positioning
+    containers_by_stack = {}
+    for container in containers:
+        stack_name = container.get("stack", "Standalone")
+        if stack_name not in containers_by_stack:
+            containers_by_stack[stack_name] = []
+        containers_by_stack[stack_name].append(container)
+
+    # Create container nodes
+    for stack_name, stack_containers in containers_by_stack.items():
+        is_stack_expanded = stack_name in expanded_stacks
+
+        # Get stack center X position (default to 0 if stack not in stacks list)
+        stack_center_x = stack_x_map.get(stack_name, 0)
 
         # Spread containers around stack's center when expanded
         if is_stack_expanded and len(stack_containers) > 0:
             container_x_positions = spread_x(stack_containers, center=stack_center_x, spacing=180)
         else:
-            # When collapsed, position at stack center (but hidden)
+            # When collapsed, position at stack center
             container_x_positions = [stack_center_x] * len(stack_containers)
 
         for i, container in enumerate(stack_containers):
             # Use stack color for container when stack is expanded
-            container_color = stack_colors[stack_name] if is_stack_expanded else "#3b82f6"
+            container_color = stack_colors.get(stack_name, "#3b82f6") if is_stack_expanded else "#3b82f6"
 
             nodes.append(
                 {
@@ -168,12 +167,12 @@ def build_network_graph(
                 }
             )
 
-            # Add edge from stack to container
-            if is_stack_expanded:
+            # Add edge from stack to container (only if stack exists and is expanded)
+            if is_stack_expanded and stack_name in stack_x_map:
                 edges.append({
                     "source_id": f"stack:{stack_name}",
                     "target_id": f"container:{container['id']}",
-                    "color": stack_colors[stack_name],
+                    "color": stack_colors.get(stack_name, "#3b82f6"),
                     "dash": "solid",
                 })
 
