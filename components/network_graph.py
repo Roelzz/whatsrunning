@@ -65,14 +65,18 @@ def build_network_graph(
         return [start + i * spacing for i in range(count)]
 
     # === NPM NODES (Layer 3) ===
-    npm_x = spread_x(npm_mappings, spacing=200)
+    npm_x = spread_x(npm_mappings, spacing=400)
     for i, npm in enumerate(npm_mappings):
+        # Truncate long domain names for display
+        domain = npm["domain"]
+        label = domain if len(domain) <= 25 else domain[:22] + "..."
+
         nodes.append(
             {
                 "id": f"npm:{npm['domain']}",
                 "x": npm_x[i],
                 "y": 3,
-                "label": npm["domain"],
+                "label": label,
                 "color": "#ef4444",  # red
                 "size": 20,
                 "type": "npm",
@@ -250,14 +254,18 @@ def build_network_graph(
                             )
 
     # === NETWORK NODES (Layer 0) ===
-    network_x = spread_x(networks, spacing=200)
+    network_x = spread_x(networks, spacing=400)
     for i, network in enumerate(networks):
+        # Simplify network names: remove common suffixes and truncate
+        label = network.replace("_default", "").replace("-network", "")
+        label = label if len(label) <= 20 else label[:17] + "..."
+
         nodes.append(
             {
                 "id": f"network:{network}",
                 "x": network_x[i],
                 "y": 0,
-                "label": network,
+                "label": label,
                 "color": "#10b981",  # green
                 "size": 18,
                 "type": "network",
@@ -268,12 +276,18 @@ def build_network_graph(
     # === EXPOSED PORT NODES (Layer 1, right cluster) ===
     exposed_x = 1000  # Fixed x position (far right)
     exposed_y_start = 0.5
-    for i, port in enumerate(sorted(set(host_ports))):
+    unique_ports = sorted(set(host_ports))
+    port_count = len(unique_ports)
+
+    # Adaptive spacing: more ports = tighter spacing, but never below 0.15
+    port_spacing = max(0.15, min(0.5, 2.0 / port_count if port_count > 0 else 0.5))
+
+    for i, port in enumerate(unique_ports):
         nodes.append(
             {
                 "id": f"exposed:{port}",
                 "x": exposed_x,
-                "y": exposed_y_start + i * 0.1,
+                "y": exposed_y_start + i * port_spacing,
                 "label": str(port),
                 "color": "#f59e0b",  # orange
                 "size": 10,
@@ -318,12 +332,21 @@ def build_network_graph(
         source = nodes[node_lookup[edge["source_id"]]]
         target = nodes[node_lookup[edge["target_id"]]]
 
+        # Convert color to rgba with opacity for less clutter
+        color = edge["color"]
+        if color.startswith("#"):
+            # Convert hex to rgba with 0.3 opacity
+            r = int(color[1:3], 16)
+            g = int(color[3:5], 16)
+            b = int(color[5:7], 16)
+            color = f"rgba({r},{g},{b},0.3)"
+
         edge_traces.append(
             go.Scatter(
                 x=[source["x"], target["x"]],
                 y=[source["y"], target["y"]],
                 mode="lines",
-                line=dict(width=1, color=edge["color"], dash=edge["dash"]),
+                line=dict(width=0.8, color=color, dash=edge["dash"]),
                 hoverinfo="none",
                 showlegend=False,
             )
@@ -336,6 +359,10 @@ def build_network_graph(
         mode="markers+text",
         text=[node["label"] for node in nodes],
         textposition="top center",
+        textfont=dict(
+            size=10,
+            color="#1f2937",  # dark gray for better readability
+        ),
         marker=dict(
             size=[node["size"] for node in nodes],
             color=[node["color"] for node in nodes],
@@ -356,9 +383,10 @@ def build_network_graph(
         xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
         yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
         plot_bgcolor="#f8f9fa",
-        height=700,
-        margin=dict(l=20, r=20, t=40, b=20),
+        height=900,  # Increased height for better vertical spacing
+        margin=dict(l=40, r=40, t=60, b=40),  # More margin for labels
         title="Network Topology",
+        dragmode="pan",  # Enable panning by default (shift+drag to zoom)
     )
 
     return fig
