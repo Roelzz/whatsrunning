@@ -11,14 +11,17 @@ from layouts import login_layout, dashboard_layout  # noqa: E402
 from dash import html, dcc  # noqa: E402
 from dash.dependencies import Input, Output  # noqa: E402
 
-# Import callbacks (registers them with app)
-import callbacks.auth_callbacks  # noqa: E402, F401
-import callbacks.graph_callbacks  # noqa: E402, F401
-import callbacks.port_callbacks  # noqa: E402, F401
-
 # Create app
 app, login_manager = create_app()
 server = app.server
+
+# Define layout with routing BEFORE importing callbacks
+app.layout = html.Div([dcc.Location(id="url", refresh=False), html.Div(id="page-content")])
+
+# Import callbacks AFTER app creation and layout (registers them with app)
+import callbacks.auth_callbacks  # noqa: E402, F401
+import callbacks.graph_callbacks  # noqa: E402, F401
+import callbacks.port_callbacks  # noqa: E402, F401
 
 
 # User loader for Flask-Login
@@ -28,10 +31,6 @@ def load_user(user_id):
     from callbacks.auth_callbacks import User
 
     return User(user_id)
-
-
-# Define layout with routing
-app.layout = html.Div([dcc.Location(id="url", refresh=False), html.Div(id="page-content")])
 
 
 # Routing callback
