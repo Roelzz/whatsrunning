@@ -16,6 +16,13 @@ def test_collect_containers():
             "NetworkSettings": {
                 "Networks": {"bridge": {}},
                 "Ports": {"80/tcp": [{"HostPort": "8080"}]},
+            },
+            "Config": {
+                "Labels": {
+                    "com.docker.compose.project": "test-stack",
+                    "com.docker.compose.service": "web",
+                    "com.docker.compose.version": "2.20.0",
+                }
             }
         }
         mock_client.containers.list.return_value = [mock_container]
@@ -27,6 +34,13 @@ def test_collect_containers():
         assert len(data["containers"]) == 1
         assert data["containers"][0]["name"] == "test-container"
         assert data["containers"][0]["exposed_ports"] == {80: 8080}
+        assert data["containers"][0]["stack"] == "test-stack"
+        assert data["containers"][0]["compose_service"] == "web"
+        assert "stacks" in data
+        assert len(data["stacks"]) == 1
+        assert data["stacks"][0]["name"] == "test-stack"
+        assert data["stacks"][0]["container_count"] == 1
+        assert data["stacks"][0]["running_count"] == 1
 
 
 def test_container_with_no_exposed_ports():
@@ -39,7 +53,8 @@ def test_container_with_no_exposed_ports():
         mock_container.image.tags = ["redis:latest"]
         mock_container.status = "running"
         mock_container.attrs = {
-            "NetworkSettings": {"Networks": {"bridge": {}}, "Ports": {"6379/tcp": None}}
+            "NetworkSettings": {"Networks": {"bridge": {}}, "Ports": {"6379/tcp": None}},
+            "Config": {"Labels": {}}
         }
         mock_client.containers.list.return_value = [mock_container]
         mock_docker.return_value = mock_client
@@ -51,6 +66,7 @@ def test_container_with_no_exposed_ports():
         assert data["containers"][0]["internal_ports"] == [6379]
         assert data["containers"][0]["exposed_ports"] == {}
         assert data["host_ports"] == []
+        assert data["containers"][0]["stack"] == "Standalone"
 
 
 def test_container_with_empty_image_tags():
@@ -62,7 +78,10 @@ def test_container_with_empty_image_tags():
         mock_container.name = "unnamed-container"
         mock_container.image.tags = []
         mock_container.status = "running"
-        mock_container.attrs = {"NetworkSettings": {"Networks": {"bridge": {}}, "Ports": {}}}
+        mock_container.attrs = {
+            "NetworkSettings": {"Networks": {"bridge": {}}, "Ports": {}},
+            "Config": {"Labels": {}}
+        }
         mock_client.containers.list.return_value = [mock_container]
         mock_docker.return_value = mock_client
 
@@ -87,6 +106,12 @@ def test_multiple_containers():
             "NetworkSettings": {
                 "Networks": {"web_network": {}},
                 "Ports": {"80/tcp": [{"HostPort": "8080"}]},
+            },
+            "Config": {
+                "Labels": {
+                    "com.docker.compose.project": "web-stack",
+                    "com.docker.compose.service": "nginx",
+                }
             }
         }
 
@@ -99,6 +124,12 @@ def test_multiple_containers():
             "NetworkSettings": {
                 "Networks": {"db_network": {}},
                 "Ports": {"5432/tcp": [{"HostPort": "5432"}]},
+            },
+            "Config": {
+                "Labels": {
+                    "com.docker.compose.project": "db-stack",
+                    "com.docker.compose.service": "postgres",
+                }
             }
         }
 
@@ -111,3 +142,5 @@ def test_multiple_containers():
         assert len(data["containers"]) == 2
         assert set(data["networks"]) == {"web_network", "db_network"}
         assert set(data["host_ports"]) == {8080, 5432}
+        assert len(data["stacks"]) == 2
+        assert {s["name"] for s in data["stacks"]} == {"web-stack", "db-stack"}

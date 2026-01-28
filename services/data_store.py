@@ -21,6 +21,8 @@ class DataStore:
             "scan_range": "",
             "last_updated": "",
             "expanded_containers": set(),  # Track expanded port groups
+            "stacks": [],
+            "expanded_stacks": set(),
         }
 
     @classmethod

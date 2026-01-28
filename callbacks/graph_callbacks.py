@@ -12,9 +12,11 @@ from components.network_graph import build_network_graph
         Input("refresh-interval", "n_intervals"),
         Input("refresh-button", "n_clicks"),
         Input("expanded-containers", "data"),
+        Input("expanded-stacks", "data"),
+        Input("stack-filter-state", "data"),
     ],
 )
-def update_graph(n_intervals, n_clicks, expanded_containers):
+def update_graph(n_intervals, n_clicks, expanded_containers, expanded_stacks, stack_filter):
     """Update network graph visualization"""
     store = DataStore.get_instance()
     data = store.get_all()
@@ -25,6 +27,9 @@ def update_graph(n_intervals, n_clicks, expanded_containers):
         npm_mappings=data["npm_mappings"],
         host_ports=data["host_ports"],
         expanded_containers=set(expanded_containers or []),
+        stacks=data.get("stacks", []),
+        expanded_stacks=set(expanded_stacks or []),
+        stack_filter=stack_filter,
     )
 
     return figure
@@ -53,6 +58,31 @@ def handle_node_click(clickData, expanded_containers):
         else:
             expanded.add(container_id)
 
+        return list(expanded)
+
+    raise PreventUpdate
+
+
+@callback(
+    Output("expanded-stacks", "data"),
+    Input("network-graph", "clickData"),
+    State("expanded-stacks", "data"),
+)
+def handle_stack_click(clickData, expanded_stacks):
+    """Handle stack node clicks to expand/collapse stack groups"""
+    if not clickData:
+        raise PreventUpdate
+
+    expanded = set(expanded_stacks or [])
+    node_id = clickData["points"][0]["customdata"]
+
+    # If clicked a stack group, toggle expansion
+    if node_id.startswith("stack:"):
+        stack_name = node_id.split(":", 1)[1]
+        if stack_name in expanded:
+            expanded.remove(stack_name)
+        else:
+            expanded.add(stack_name)
         return list(expanded)
 
     raise PreventUpdate
@@ -219,6 +249,7 @@ def show_container_details(node_id, data, helpers):
     basic_card = build_relationship_card(
         f"Container: {container['name']}",
         [
+            html.Div([html.Strong("Stack: "), container.get("stack", "Unknown")]),
             html.Div([html.Strong("Image: "), container["image"]]),
             html.Div([html.Strong("Status: "), container["status"]]),
             html.Div([html.Strong("ID: "), container["id"][:12]])
@@ -422,6 +453,74 @@ def show_port_details(node_id, data, helpers):
     return html.Div([basic_card, chain_card, container_card] if chain_card else [basic_card, container_card])
 
 
+def show_stack_details(node_id, data, helpers):
+    """Show details for stack node"""
+    stack_name = node_id.split(":", 1)[1]
+    stack = next((s for s in data.get("stacks", []) if s["name"] == stack_name), None)
+
+    if not stack:
+        return "Stack not found"
+
+    # Basic info card
+    basic_items = [
+        html.Div([html.Strong("Containers: "), f"{stack['running_count']}/{stack['container_count']} running"]),
+    ]
+
+    if stack.get("compose_version"):
+        basic_items.append(html.Div([html.Strong("Compose Version: "), stack["compose_version"]]))
+
+    if stack.get("compose_working_dir"):
+        basic_items.append(html.Div([html.Strong("Working Dir: "), stack["compose_working_dir"]]))
+
+    basic_card = build_relationship_card(
+        f"Stack: {stack_name}",
+        basic_items,
+        color="info"
+    )
+
+    # Containers in this stack
+    stack_containers = [c for c in data["containers"] if c["stack"] == stack_name]
+    container_items = [
+        html.Div([
+            build_badge("Container", "primary"),
+            c["name"],
+            " - ",
+            html.Span(c["status"], className=f"text-{'success' if c['status'] == 'running' else 'danger'}")
+        ])
+        for c in stack_containers
+    ]
+    container_card = build_relationship_card("Containers", container_items, color="primary")
+
+    # NPM proxies pointing to this stack
+    stack_npm = []
+    for container in stack_containers:
+        npm_list = helpers["container_to_npm"].get(container["id"], [])
+        for npm in npm_list:
+            if npm not in stack_npm:
+                stack_npm.append(npm)
+
+    npm_items = [
+        html.Div([
+            build_badge("NPM", "danger"),
+            npm["domain"],
+            " → ",
+            html.Span(f"port {npm['target_port']}", className="text-muted")
+        ])
+        for npm in stack_npm
+    ]
+    npm_card = build_relationship_card("NPM Proxies", npm_items, color="danger")
+
+    # Networks used by this stack
+    stack_networks = set()
+    for container in stack_containers:
+        stack_networks.update(container["networks"])
+
+    network_items = [html.Div(net) for net in sorted(stack_networks)]
+    network_card = build_relationship_card("Networks", network_items, color="success")
+
+    return html.Div([basic_card, container_card, npm_card, network_card])
+
+
 @callback(Output("node-details", "children"), Input("network-graph", "clickData"))
 def show_node_details(clickData):
     """Show enhanced details with relationship chains for clicked node"""
@@ -444,6 +543,8 @@ def show_node_details(clickData):
     # Route to appropriate handler
     if node_id.startswith("npm:"):
         return show_npm_details(node_id, data, helpers)
+    elif node_id.startswith("stack:"):
+        return show_stack_details(node_id, data, helpers)
     elif node_id.startswith("container:"):
         return show_container_details(node_id, data, helpers)
     elif node_id.startswith("exposed:"):
@@ -458,6 +559,32 @@ def show_node_details(clickData):
         return show_container_details(f"container:{container_id}", data, helpers)
 
     return "Unknown node type"
+
+
+@callback(
+    Output("stack-filter", "options"),
+    Input("refresh-interval", "n_intervals"),
+)
+def update_stack_filter_options(n_intervals):
+    """Update stack filter dropdown options"""
+    store = DataStore.get_instance()
+    data = store.get_all()
+
+    stacks = data.get("stacks", [])
+    options = [{"label": f"{s['name']} ({s['running_count']}/{s['container_count']})",
+                "value": s['name']}
+               for s in stacks]
+
+    return options
+
+
+@callback(
+    Output("stack-filter-state", "data"),
+    Input("stack-filter", "value"),
+)
+def update_stack_filter_state(filter_value):
+    """Update filter state when dropdown changes"""
+    return filter_value
 
 
 @callback(Output("last-updated", "children"), Input("refresh-interval", "n_intervals"))

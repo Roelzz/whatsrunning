@@ -3,18 +3,56 @@ import plotly.graph_objects as go
 from typing import List, Dict, Set
 
 
+def generate_stack_colors(stacks: List[Dict]) -> Dict[str, str]:
+    """
+    Generate distinct colors for each stack using HSL color space.
+    Standalone stack gets a neutral gray.
+    """
+    colors = {}
+
+    # Standalone always gets gray
+    if any(s["name"] == "Standalone" for s in stacks):
+        colors["Standalone"] = "#6b7280"  # gray
+
+    # Generate colors for other stacks
+    non_standalone = [s for s in stacks if s["name"] != "Standalone"]
+    count = len(non_standalone)
+
+    if count == 0:
+        return colors
+
+    # Distribute hue evenly around color wheel
+    for i, stack in enumerate(non_standalone):
+        hue = int(360 * i / count)
+        # Use HSL: distinct hue, moderate saturation, medium-dark lightness
+        colors[stack["name"]] = f"hsl({hue}, 65%, 55%)"
+
+    return colors
+
+
 def build_network_graph(
     containers: List[Dict],
     networks: List[str],
     npm_mappings: List[Dict],
     host_ports: List[int],
     expanded_containers: Set[str],
+    stacks: List[Dict],
+    expanded_stacks: Set[str],
+    stack_filter: str = None,
 ) -> go.Figure:
     """
     Build interactive network graph with nodes and edges.
 
     expanded_containers: Set of container IDs with expanded port groups
+    stacks: List of stack metadata
+    expanded_stacks: Set of stack names that are expanded
+    stack_filter: If provided, only show nodes related to this stack
     """
+
+    # Filter containers and stacks if stack_filter is set
+    if stack_filter:
+        containers = [c for c in containers if c["stack"] == stack_filter]
+        stacks = [s for s in stacks if s["name"] == stack_filter]
 
     # Node storage
     nodes = []  # {id, x, y, label, color, size, type, data}
@@ -42,94 +80,175 @@ def build_network_graph(
             }
         )
 
-    # === CONTAINER NODES (Layer 2) ===
-    container_x = spread_x(containers, spacing=180)
-    for i, container in enumerate(containers):
-        nodes.append(
-            {
-                "id": f"container:{container['id']}",
-                "x": container_x[i],
-                "y": 2,
-                "label": container["name"],
-                "color": "#3b82f6",  # blue
+    # === STACK NODES (Layer 2.5) ===
+    stack_colors = generate_stack_colors(stacks)
+
+    # Group containers by stack for positioning
+    stack_to_containers = {}
+    for container in containers:
+        stack_name = container["stack"]
+        if stack_name not in stack_to_containers:
+            stack_to_containers[stack_name] = []
+        stack_to_containers[stack_name].append(container)
+
+    stack_x = spread_x(stacks, spacing=250)
+    for i, stack in enumerate(stacks):
+        stack_name = stack["name"]
+        is_expanded = stack_name in expanded_stacks
+        container_count = stack["container_count"]
+        running_count = stack["running_count"]
+
+        if not is_expanded:
+            # Collapsed: single stack group node
+            label = f"{stack_name} ({running_count}/{container_count})"
+            nodes.append({
+                "id": f"stack:{stack_name}",
+                "x": stack_x[i],
+                "y": 2.5,
+                "label": label,
+                "color": stack_colors[stack_name],
+                "size": 25,
+                "type": "stack_group",
+                "data": stack,
+            })
+
+            # Edges: stack -> containers (hidden when collapsed)
+            for container in stack_to_containers.get(stack_name, []):
+                edges.append({
+                    "source_id": f"stack:{stack_name}",
+                    "target_id": f"container:{container['id']}",
+                    "color": stack_colors[stack_name],
+                    "dash": "dot",
+                })
+        else:
+            # Expanded: show individual stack node + visible containers
+            nodes.append({
+                "id": f"stack:{stack_name}",
+                "x": stack_x[i],
+                "y": 2.5,
+                "label": f"{stack_name}",
+                "color": stack_colors[stack_name],
                 "size": 20,
-                "type": "container",
-                "data": container,
-            }
-        )
+                "type": "stack",
+                "data": stack,
+            })
 
-        # Port group node (collapsed state)
-        container_id = container["id"]
-        is_expanded = container_id in expanded_containers
-        port_count = len(container.get("internal_ports", []))
+    # === CONTAINER NODES (Layer 2) ===
+    # Position containers within their stack groups when expanded
+    for stack in stacks:
+        stack_name = stack["name"]
+        is_stack_expanded = stack_name in expanded_stacks
+        stack_containers = stack_to_containers.get(stack_name, [])
 
-        if port_count > 0:
-            if not is_expanded:
-                # Collapsed: single port group node
-                nodes.append(
-                    {
-                        "id": f"ports:{container_id}",
-                        "x": container_x[i],
-                        "y": 1.5,
-                        "label": f"{port_count} ports",
-                        "color": "#8b5cf6",  # purple
-                        "size": 12,
-                        "type": "port_group",
-                        "data": {
-                            "container_id": container_id,
-                            "ports": container["internal_ports"],
-                        },
-                    }
-                )
+        # Find stack's X position
+        stack_idx = next(i for i, s in enumerate(stacks) if s["name"] == stack_name)
+        stack_center_x = stack_x[stack_idx]
 
-                # Edge: container -> port group
-                edges.append(
-                    {
-                        "source_id": f"container:{container_id}",
-                        "target_id": f"ports:{container_id}",
-                        "color": "#8b5cf6",
-                        "dash": "solid",
-                    }
-                )
-            else:
-                # Expanded: show individual ports
-                port_x = spread_x(container["internal_ports"], center=container_x[i], spacing=30)
-                for j, port in enumerate(container["internal_ports"]):
+        # Spread containers around stack's center when expanded
+        if is_stack_expanded and len(stack_containers) > 0:
+            container_x_positions = spread_x(stack_containers, center=stack_center_x, spacing=180)
+        else:
+            # When collapsed, position at stack center (but hidden)
+            container_x_positions = [stack_center_x] * len(stack_containers)
+
+        for i, container in enumerate(stack_containers):
+            # Use stack color for container when stack is expanded
+            container_color = stack_colors[stack_name] if is_stack_expanded else "#3b82f6"
+
+            nodes.append(
+                {
+                    "id": f"container:{container['id']}",
+                    "x": container_x_positions[i],
+                    "y": 2,
+                    "label": container["name"],
+                    "color": container_color,
+                    "size": 20,
+                    "type": "container",
+                    "data": container,
+                }
+            )
+
+            # Add edge from stack to container
+            if is_stack_expanded:
+                edges.append({
+                    "source_id": f"stack:{stack_name}",
+                    "target_id": f"container:{container['id']}",
+                    "color": stack_colors[stack_name],
+                    "dash": "solid",
+                })
+
+            # Port group node (collapsed state)
+            container_id = container["id"]
+            is_expanded = container_id in expanded_containers
+            port_count = len(container.get("internal_ports", []))
+
+            if port_count > 0:
+                if not is_expanded:
+                    # Collapsed: single port group node
                     nodes.append(
                         {
-                            "id": f"port:{container_id}:{port}",
-                            "x": port_x[j],
+                            "id": f"ports:{container_id}",
+                            "x": container_x_positions[i],
                             "y": 1.5,
-                            "label": str(port),
-                            "color": "#8b5cf6",
-                            "size": 8,
-                            "type": "port",
-                            "data": {"container_id": container_id, "port": port},
+                            "label": f"{port_count} ports",
+                            "color": "#8b5cf6",  # purple
+                            "size": 12,
+                            "type": "port_group",
+                            "data": {
+                                "container_id": container_id,
+                                "ports": container["internal_ports"],
+                            },
                         }
                     )
 
-                    # Edge: container -> individual port
+                    # Edge: container -> port group
                     edges.append(
                         {
                             "source_id": f"container:{container_id}",
-                            "target_id": f"port:{container_id}:{port}",
+                            "target_id": f"ports:{container_id}",
                             "color": "#8b5cf6",
                             "dash": "solid",
                         }
                     )
+                else:
+                    # Expanded: show individual ports
+                    port_x = spread_x(container["internal_ports"], center=container_x_positions[i], spacing=30)
+                    for j, port in enumerate(container["internal_ports"]):
+                        nodes.append(
+                            {
+                                "id": f"port:{container_id}:{port}",
+                                "x": port_x[j],
+                                "y": 1.5,
+                                "label": str(port),
+                                "color": "#8b5cf6",
+                                "size": 8,
+                                "type": "port",
+                                "data": {"container_id": container_id, "port": port},
+                            }
+                        )
 
-                    # Edge: internal port -> exposed port (if mapped)
-                    exposed_ports = container.get("exposed_ports", {})
-                    if port in exposed_ports:
-                        host_port = exposed_ports[port]
+                        # Edge: container -> individual port
                         edges.append(
                             {
-                                "source_id": f"port:{container_id}:{port}",
-                                "target_id": f"exposed:{host_port}",
-                                "color": "#f59e0b",
+                                "source_id": f"container:{container_id}",
+                                "target_id": f"port:{container_id}:{port}",
+                                "color": "#8b5cf6",
                                 "dash": "solid",
                             }
                         )
+
+                        # Edge: internal port -> exposed port (if mapped)
+                        exposed_ports = container.get("exposed_ports", {})
+                        if port in exposed_ports:
+                            host_port = exposed_ports[port]
+                            edges.append(
+                                {
+                                    "source_id": f"port:{container_id}:{port}",
+                                    "target_id": f"exposed:{host_port}",
+                                    "color": "#f59e0b",
+                                    "dash": "solid",
+                                }
+                            )
 
     # === NETWORK NODES (Layer 0) ===
     network_x = spread_x(networks, spacing=200)

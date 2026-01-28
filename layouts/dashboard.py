@@ -28,6 +28,26 @@ def layout():
                 ],
                 className="mb-4 align-items-center",
             ),
+            # Filter controls row
+            dbc.Row(
+                [
+                    dbc.Col(
+                        [
+                            html.Label("Filter by Stack:", className="me-2"),
+                            dcc.Dropdown(
+                                id="stack-filter",
+                                options=[],
+                                placeholder="All Stacks",
+                                clearable=True,
+                                className="d-inline-block",
+                                style={"width": "200px"}
+                            ),
+                        ],
+                        width="auto",
+                    ),
+                ],
+                className="mb-3 align-items-center",
+            ),
             # Main network graph
             dbc.Row(
                 [
@@ -92,6 +112,10 @@ def layout():
             dcc.Interval(id="refresh-interval", interval=10 * 1000, n_intervals=0),
             # Hidden store for expanded containers
             dcc.Store(id="expanded-containers", data=[]),
+            # Hidden store for expanded stacks
+            dcc.Store(id="expanded-stacks", data=[]),
+            # Hidden store for stack filter
+            dcc.Store(id="stack-filter-state", data=None),
         ],
         fluid=True,
         className="p-4",
